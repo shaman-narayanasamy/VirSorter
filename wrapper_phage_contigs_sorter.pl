@@ -43,7 +43,7 @@ my $input_file      = '';
 my $choice_database = 1;
 my $tag_virome      = 0;
 my $custom_phage    = '';
-my $data_dir        = '/data';
+my $data_dir        = '/global/dna/projectdirs/MEP/tools/VirSorter/Db/';
 my $n_cpus          = 16;
 my $wdir            = cwd();
 
@@ -107,15 +107,9 @@ if ($choice_database == 2) {
     $ref_phage_clusters = catfile($data_dir,
         'Phage_gene_catalog_plus_viromes', 'Phage_Clusters_current.tab');
 }
-elsif ($choice_database == 3) {
-    $dir_Phage_genes    = catdir($data_dir, 'euk-virus');
-    # ??? what goes here?  I don't have this file
-    $ref_phage_clusters = catfile($data_dir,
-        'euk-virus', 'Phage_Clusters_current.tab');
-}
 
-my $db_PFAM_a = catfile($data_dir, 'PFAM_27', 'Pfam-A.hmm');
-my $db_PFAM_b = catfile($data_dir, 'PFAM_27', 'Pfam-B.hmm');
+my $db_PFAM_a = catfile('/global/dna/projectdirs/microbial/omics/databases/Pfam/Pfam-A/v30/', 'Pfam-A.hmm');
+my $db_PFAM_b = catfile($data_dir, 'PfamB/', 'Pfam-B.hmm');
 
 my $out = "";
 

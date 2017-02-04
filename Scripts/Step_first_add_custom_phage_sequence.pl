@@ -349,6 +349,7 @@ foreach(sort keys %clusters){
 	my $muscle_out=$tmp_dir."log_out_muscle";
 	my $muscle_err=$tmp_dir."log_err_muscle";
 	`$path_to_muscle -in $path_to_fasta -out $path_to_ali > $muscle_out 2> $muscle_err`;
+	# MAYBE NOT NEEDED WITH LATEST VERSION OF HMMMER
 	my $out_stokcholm=$path_to_ali.".stockholm";
 	open(S1,">$out_stokcholm") || die "pblm opening $out_stokcholm\n";
 	print S1 "# STOCKHOLM 1.0\n";
@@ -372,9 +373,10 @@ $out=`cat $db_phage > $db_out/Pool_clusters.hmm`;
 print "cat previous hmm : $out\n";
 $out=`cat $tmp_dir/clusts/*.hmm >> $db_out/Pool_clusters.hmm`;
 print "cat new hmm : $out\n";
+### NOT NEEDED WITH LATEST VERSION OF HMMER
 # We create a db for hmmscan
-$out=`$path_to_hmmpress $db_out/Pool_clusters.hmm`;
-print "hmm press :$out\n";
+# $out=`$path_to_hmmpress $db_out/Pool_clusters.hmm`;
+# print "hmm press :$out\n";
 # And update the phage clusters catalog
 my $final_catalog=$db_out."/Phage_Clusters_current.tab";
 $out=`cat $ref_phage_clusters > $final_catalog`;

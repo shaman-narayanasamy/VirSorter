@@ -102,8 +102,6 @@ while(<BL>){
 	my @tab=split("\t",$_);
 	if ($tab[11]>$th_score && $tab[10]<$th_evalue && $tab[0] ne $tab[1]){
 		my $evalue=$tab[10];
-# 		$evalue=-log10($evalue);
-# 		if ($evalue>$max){$evalue=$max;}
 		print S1 "$tab[0]\t$tab[1]\t$evalue\n";
 	}
 }
@@ -132,7 +130,7 @@ while(<DUMP>){
 	my @tab=split("\t",$_);
 	my $n_s_c=$#tab+1;
 	if ($n_s_c>=$min_seq_in_a_cluster){
-		# on a trouvé un cluster de plus de deux
+		# We found a cluster with 2 sequences or more
 		my $cluster_id=$last_cluster_id+1;
 		$cluster_id="Phage_cluster_".$cluster_id."-".$r_number;
 		print "We found a cluster with $n_s_c sequences => Cluster $cluster_id\n";
@@ -193,7 +191,7 @@ close S1;
 close S2;
 print "making a blastable db from the new unclustered\n";
 $out=`$path_to_makeblastdb -dbtype prot -in $pool_new_unclustered -out $blastable_new_unclustered`;
-# on réduit aussi le fichier blast qu'on ajoute au blast des unclustered
+# We take all the blast results to be added to the "blast_unclustered" file
 open(BL,"<$out_blast") || die "pblm ouverture fichier $out_blast\n";
 open(S1,">$blast_unclustered") || die "pblm ouverture fichier $blast_unclustered\n";
 while(<BL>){
@@ -220,6 +218,7 @@ foreach(sort keys %clusters){
 	my $muscle_out= catfile($r_dir, "log_out_muscle");
 	my $muscle_err= catfile($r_dir, "log_err_muscle");
 	`$path_to_muscle -in $path_to_fasta -out $path_to_ali > $muscle_out 2> $muscle_err`;
+	## MAYBE THE STOCKHOLM CONVERSION IS NOT NEEDED ANYMORE WITH HMMER 3.1b2, THEIR MANUAL SAY THEY TAKE FASTA AS INPUT NOW, TO TEST !
 	my $out_stokcholm=$path_to_ali.".stockholm";
 	open(S1,">$out_stokcholm") || die "pblm opening $out_stokcholm\n";
 	print S1 "# STOCKHOLM 1.0\n";
@@ -245,8 +244,9 @@ if ($#tab_hmm>=0){
 	$out=`cat $r_dir/clusts/*.hmm >> $r_dir/db/Pool_clusters.hmm`;
 	print "cat new hmm : $out\n";
 	# and create a new database for hmmsearch
-	$out=`$path_to_hmmpress $r_dir/db/Pool_clusters.hmm`;
-	print "hmm press :$out\n";
+	# NOT NEEDED ANYMORE WITH HMMER 3.1b2
+	# $out=`$path_to_hmmpress $r_dir/db/Pool_clusters.hmm`;
+	# print "hmm press :$out\n";
 }
 else{
 	$out=`touch $r_dir/db/Pool_clusters.hmm`;

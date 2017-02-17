@@ -1,33 +1,25 @@
 #!/usr/bin/env perl
-
 use strict;
 use autodie;
-use File::Spec::Functions;
-use FindBin '$Bin';
-
-# Script to measure metrics on the sliding window
-# Argument 0 : csv file of the contigs
-# Argument 1 : summary file of the phage fragments
-if (($ARGV[0] eq "-h") || ($ARGV[0] eq "--h") || ($ARGV[0] eq "-help" )|| ($ARGV[0] eq "--help") || (!defined($ARGV[1])))
-{
+require '../config.txt';
+use Getopt::Long;
+my $h='';
+my $code_dataset='';
+my $wdir='';
+my $ref_file='';
+GetOptions ('help' => \$h, 'h' => \$h,'i=s'=>\$code_dataset, 'd=s'=>\$wdir, 'r=s'=>\$ref_file);
+if ($h==1 || $code_dataset eq "" || $wdir eq "" || $ref_phage_clusters eq ""){ # If asked for help or did not set up any argument
 	print "# Script to measure metrics on the sliding window
-# Argument 0 : csv file of the contigs
-# Argument 1 : summary file of the phage fragments
-# Argument 2 (optional) : a file with the refs values that we could use instead of estimating them \n";
+# -i : code dataset
+# -d : working directory
+# -r : generic ref values that we use instead of estimating them 
+";
 	die "\n";
 }
 $| = 1;
-my $csv_file = $ARGV[0];
-my $out_file = $ARGV[1];
-if ( -e $out_file ) { `rm $out_file`; }
-my $ref_file = $ARGV[0];
-$ref_file =~ s/\.csv/.refs/g;
-my $do_ref_estimation = 0;
-if (defined($ARGV[2])){
-#	$ref_file=$ARGV[2];
-	`cp $ARGV[2] $ref_file`; # That way, the ref file is in the result directory if a use wants to check it
-	$do_ref_estimation=1;
-}
+my $csv_file = $wdir. $code_dataset . '_affi-contigs.csv');
+my $out_file = $wdir. $code_dataset . '_phage-signal.csv');
+
 
 ## ABSOLUTE THRESHOLDS ##
 my $th_viral_hallmark=1;
@@ -36,8 +28,7 @@ my $th_sig_2=4;
 my $th_nb_genes_covered=0.80;
 my $th_nb_genes_noncaudo=1;
 ## END OF ABSOLUTE THRESHOLDS ##
-my $script_dir= catfile($Bin);
-my $path_to_c_script= catfile($script_dir, "Sliding_windows_3");
+my $path_to_c_script= $path{'bin_dir'}."Sliding_windows_3";
 
 print "## Taking information from the contig info file ($csv_file)\n";
 open F1, '<', $csv_file;
@@ -93,8 +84,8 @@ close F1;
 
 my $th_gene_size=0;
 # WE HAVE A REF FILE, WE DONT ESTIMATE
-if ($do_ref_estimation==1){
-	print "## We have a ref file : $ref_file , so will use it\n";
+# if ($do_ref_estimation==1){
+	print "## We have a ref file : $ref_file , so we use it\n";
 	open F1, '<', $ref_file;
 	while (<F1>){
 		chomp($_);
@@ -102,59 +93,59 @@ if ($do_ref_estimation==1){
 		$th_gene_size=$tab[4];
 	}
 	close F1;
-}
-### ELSE, IF WE ESTIMATE THE PARAMETERS FROM THE DATASET
-else{
-	my %total;
-	my @store_avg_g_size;
-	# look at all contigs at once for the global metrics
-	print "## First look at everything to get the totals\n";
-	foreach(@liste_contigs){
-		my $contig=$_;
-		my @tab_genes=sort {$infos{$contig}{$a}{"order"} <=> $infos{$contig}{$b}{"order"}} keys %{$infos{$contig}};
-		my $total_nb_genes=$#tab_genes+1;
-		my $n_f=0;
-		# First, taking all the metrics for the totals
-		my $last_strand=$infos{$contig}{$tab_genes[0]}{"strand"};
-		for (my $i=0;$i<$total_nb_genes;$i++){
-			if (defined($tab_genes[$i])){
-				$total{"n_obs"}++;
-				if ($infos{$contig}{$tab_genes[$i]}{"best_domain_hit"}=~/^PC-/){ # look at best domain hit on a phage
-					$total{"phage"}++;
-					if (defined($infos{$contig}{$tab_genes[$i]}{"hit_PFAM"})){$total{"pfam"}++;}
-					if ($infos{$contig}{$tab_genes[$i]}{"category"}>=3){
-						$total{"noncaudo"}++;
-					}
-				}
-				elsif($infos{$contig}{$tab_genes[$i]}{"best_domain_hit"}=~/^PFAM-/){
-					$total{"pfam"}++;
-					if (defined($infos{$contig}{$tab_genes[$i]}{"hit_PC"})){$total{"phage"}++;}
-				}
-				elsif($infos{$contig}{$tab_genes[$i]}{"best_domain_hit"} eq "-"){
-					$total{"unch"}++;
-				}
-				if ($infos{$contig}{$tab_genes[$i]}{"strand"} ne $last_strand){
-					$total{"switch"}++;
-					$last_strand=$infos{$contig}{$tab_genes[$i]}{"strand"};
-				}
-				push(@store_avg_g_size,$infos{$contig}{$tab_genes[$i]}{"length"});
-			}
-		}
-	}
-
-	print "## Transform it into probability and gene size decile\n";
-	# Transform it into probability / ratios and sort the gene size table
-	$total{"phage"}/=$total{"n_obs"};
-	$total{"noncaudo"}/=$total{"n_obs"};
-	$total{"pfam"}/=$total{"n_obs"};
-	$total{"unch"}/=$total{"n_obs"};
-	$total{"switch"}/=$total{"n_obs"};
-	# Determine d1 (first decile) of the gene size distribution, so we divide the distribution in 10 parts
-	$th_gene_size=get_th_gene_size(\@store_avg_g_size,10);
-	open S2, '>', $ref_file;
-	print S2 $total{"phage"}."\t".$total{"pfam"}."\t".$total{"unch"}."\t".$total{"switch"}."\t".$th_gene_size."\t".$total{"noncaudo"};
-	close S2;
-}
+# }
+# ### ELSE, IF WE ESTIMATE THE PARAMETERS FROM THE DATASET
+# else{
+# 	my %total;
+# 	my @store_avg_g_size;
+# 	# look at all contigs at once for the global metrics
+# 	print "## First look at everything to get the totals\n";
+# 	foreach(@liste_contigs){
+# 		my $contig=$_;
+# 		my @tab_genes=sort {$infos{$contig}{$a}{"order"} <=> $infos{$contig}{$b}{"order"}} keys %{$infos{$contig}};
+# 		my $total_nb_genes=$#tab_genes+1;
+# 		my $n_f=0;
+# 		# First, taking all the metrics for the totals
+# 		my $last_strand=$infos{$contig}{$tab_genes[0]}{"strand"};
+# 		for (my $i=0;$i<$total_nb_genes;$i++){
+# 			if (defined($tab_genes[$i])){
+# 				$total{"n_obs"}++;
+# 				if ($infos{$contig}{$tab_genes[$i]}{"best_domain_hit"}=~/^PC-/){ # look at best domain hit on a phage
+# 					$total{"phage"}++;
+# 					if (defined($infos{$contig}{$tab_genes[$i]}{"hit_PFAM"})){$total{"pfam"}++;}
+# 					if ($infos{$contig}{$tab_genes[$i]}{"category"}>=3){
+# 						$total{"noncaudo"}++;
+# 					}
+# 				}
+# 				elsif($infos{$contig}{$tab_genes[$i]}{"best_domain_hit"}=~/^PFAM-/){
+# 					$total{"pfam"}++;
+# 					if (defined($infos{$contig}{$tab_genes[$i]}{"hit_PC"})){$total{"phage"}++;}
+# 				}
+# 				elsif($infos{$contig}{$tab_genes[$i]}{"best_domain_hit"} eq "-"){
+# 					$total{"unch"}++;
+# 				}
+# 				if ($infos{$contig}{$tab_genes[$i]}{"strand"} ne $last_strand){
+# 					$total{"switch"}++;
+# 					$last_strand=$infos{$contig}{$tab_genes[$i]}{"strand"};
+# 				}
+# 				push(@store_avg_g_size,$infos{$contig}{$tab_genes[$i]}{"length"});
+# 			}
+# 		}
+# 	}
+# 
+# 	print "## Transform it into probability and gene size decile\n";
+# 	# Transform it into probability / ratios and sort the gene size table
+# 	$total{"phage"}/=$total{"n_obs"};
+# 	$total{"noncaudo"}/=$total{"n_obs"};
+# 	$total{"pfam"}/=$total{"n_obs"};
+# 	$total{"unch"}/=$total{"n_obs"};
+# 	$total{"switch"}/=$total{"n_obs"};
+# 	# Determine d1 (first decile) of the gene size distribution, so we divide the distribution in 10 parts
+# 	$th_gene_size=get_th_gene_size(\@store_avg_g_size,10);
+# 	open S2, '>', $ref_file;
+# 	print S2 $total{"phage"}."\t".$total{"pfam"}."\t".$total{"unch"}."\t".$total{"switch"}."\t".$th_gene_size."\t".$total{"noncaudo"};
+# 	close S2;
+# }
 
 my $nb_gene_th=2;
 # Now the sliding windows
@@ -525,54 +516,6 @@ foreach(@liste_contigs){
 	`rm $out_file_c $out_file_c2 $out_file_c3`;
 }
 
-sub factorial { # factorial $n
-	my $n = shift;
-	my $f = 1;
-	$f *= $n-- while $n > 0;    # Multiply, then decrement
-	return $f;
-}
-
-sub combine { # combination of $k elements in $n ensemble
-	my $k=$_[0];
-	my $n=$_[1];
-	my $f=factorial($n)/(factorial($k) * factorial($n-$k));
-	return $f;
-}
-
-sub proba { # probability of x=$i knowing nb_obs $n and p $p
-	my $i=$_[0];
-	my $n=$_[1];
-	my $p=$_[2];
-	my $f=combine($i,$n)*($p**$i)*((1-$p)**($n-$i));
-	return $f;
-}
-
-sub proba_more_than { # probability of x>=$s knowing nb_obs $n and p $p
-	my $s=$_[0];
-	my $n=$_[1];
-	my $p=$_[2];
-	my $f=0;
-	for (my $i=$s;$i<=$n;$i++){
-		$f+=proba($i,$n,$p);
-	}
-	return $f;
-}
-
-sub proba_less_than { # probability of x<=$s knowing nb_obs $n and p $p
-	my $s=$_[0];
-	my $n=$_[1];
-	my $p=$_[2];
-	my $f=0;
-	for (my $i=0;$i<=$s;$i++){
-		$f+=proba($i,$n,$p);
-	}
-	return $f;
-}
-
-sub log10 {
-	my $n = shift;
-	return log($n)/log(10);
-}
 
 sub overlap { # To check if a prediction is not within another of the same type, in which case we don't really care
 	my $pred=$_[0];

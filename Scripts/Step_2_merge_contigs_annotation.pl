@@ -2,39 +2,32 @@
 
 use strict;
 use autodie;
-
-# Script to generate the merged contig annotation (annotate each gene)
-# Argument 0 : MGA predict file
-# Argument 1 : HMMsearch vs Phage Clusters
-# Argument 2 : BLast vs unclustered
-# Argument 3 : HMMsearch vs PFAMa
-# Argument 4 : HMMsearch vs PFAMb
-# Argument 5 : Ref Phage Clusters
-# Argument 6 : Out file
-if (($ARGV[0] eq "-h") || ($ARGV[0] eq "--h") || ($ARGV[0] eq "-help" )|| ($ARGV[0] eq "--help") || (!defined($ARGV[6])))
-{
+require '../config.txt';
+use Getopt::Long;
+my $h='';
+my $code_dataset='';
+my $wdir='';
+my $ref_phage_clusters='';
+GetOptions ('help' => \$h, 'h' => \$h,'i=s'=>\$code_dataset, 'd=s'=>\$wdir, 'r=s'=>\$ref_phage_clusters);
+if ($h==1 || $code_dataset eq "" || $wdir eq "" || $ref_phage_clusters eq ""){ # If asked for help or did not set up any argument
 	print "# Script to generate the merged contig annotation (annotate each gene)
-# Argument 0 : MGA predict file
-# Argument 1 : HMMsearch vs Phage Clusters
-# Argument 2 : BLast vs unclustered
-# Argument 3 : HMMsearch vs PFAMa
-# Argument 4 : HMMsearch vs PFAMb
-# Argument 5 : Ref Phage Clusters
-# Argument 6 : Out file\n";
+# Arguments :
+# -i : code dataset
+# -d : working directory
+# -r : reference file for the viral clusters database used
+";
 	die "\n";
 }
+my $contig_list=$fastadir."/".$code_dataset."_contig_list.txt";
+my %check_contig;
+open my $txt,"<",$contig_list;
+while(<$txt>){
+	chomp($_);
+	$check_contig{$_}=1;
+}
+close $txt;
 
-my $mga_file             = $ARGV[0];
-my $hmm_phage_clusters   = $ARGV[1];
-my $blast_vs_unclustered = $ARGV[2];
-my $hmm_pfama            = $ARGV[3];
-my $hmm_pfamb            = $ARGV[4];
-my $ref_phage_clusters   = $ARGV[5];
-my $out_file             = $ARGV[6];
-
-my $circu_file=$mga_file;
-$circu_file=~s/_mga_final.predict/_circu.list/;
-# Take list of circular files
+my $circu_list=$path{'input_dir'}.$code_dataset."/".$code_dataset."_circular.txt";
 my %circu;
 open my $li, '<', $circu_file;
 while(<$li>){
@@ -45,34 +38,40 @@ while(<$li>){
 }
 close $li;
 
+my $prodigal_file=$path{'input_dir'}.$code_dataset."/".$code_dataset."_Prodigal.gff";
 my $n2=0;
 my %size;
 my %order_gene;
 my %predict;
 my %type;
 my $id_c="";
-my @liste_contigs;
 # Read all gene predictions
-open my $fts, '<',  $mga_file;
-while(<$fts>){
+open my $gff,"<",$prodigal_file;
+while(<$gff>){
 	chomp($_);
-	if ($_=~/^>(.*)/){
-		my @tab=split("\t",$1);
-		$id_c=$tab[0];
-		$size{$id_c}=$tab[1];
-		$n2=0;
-		push(@liste_contigs,$id_c);
+	if($_=~/^# Sequence Data: seqnum=\d+;seqlen=(\d+);seqhdr\"(\S+)\"/){
+		if ($check_contig{$2}==1){
+			$size{$2}=$1;
+		}
 	}
-	else{
-		my @tab=split("\t",$_);
-		$predict{$id_c}{$tab[0]}=$_;
-		$order_gene{$id_c}{$tab[0]}=$n2;
-		$n2++;
+	elsif ($_=~/^#/){next}
+	my @tab=split("\t",$_);
+	if ($check_contig{$tab[0]}==1){
+		if ($tab[8]=~/^ID=\d+_(\d+);/){
+			my $id_prot=$tab[0].$1;
+			$order_gene{$tab[0]}{$id_prot}=$n2;
+			$predict{$tab[0]}{$id_prot}=$_;
+			$n2++;
+		}
+		else{
+			print "!!! PBLM WITH PRODIGAL LINE $_ == $tab[8]\n";
+		}
 	}
 }
-close $fts;
+close $gff;
 
 # first the BLAST vs unclustered , which annotation will eventually be erased by the HMM vs Phage cluster if any (that we trust more)
+my $blast_vs_unclustered=$wdir.'Contigs_prots_vs_unclustered.tab';
 my %affi_phage_cluster;
 my $score_blast_th=50;
 my $evalue_blast_th=0.001;
@@ -91,15 +90,13 @@ while (<$tsv>){
 		$affi_phage_cluster{$seq}{"match"}=$match;
 # 				print "$seq match $match\n";
 	}
-	
 }
 close $tsv;
 
-
 my $score_th=40;
 my $evalue_th=0.00001;
-
-# Then reading the annotation from the HMM vs Phage Cluster
+# Then reading the annotation from the HMM vs Viral Clusters
+my $hmm_phage_clusters=$wdir.'Contigs_prots_vs_Phage_Gene_Catalog.tab';
 open my $tsv, '<', $hmm_phage_clusters;
 while(<$tsv>){
 	chomp($_);
@@ -117,14 +114,13 @@ while(<$tsv>){
 			$affi_phage_cluster{$seq}{"score"}=$score;
 			$affi_phage_cluster{$seq}{"evalue"}=$evalue;
 			$affi_phage_cluster{$seq}{"match"}=$match;
-# 				print "$seq match $match\n";
 		}
 	}
 }
 close $tsv;
 
 # Then reading annotation from PFAM
-my %affi_pfam;
+my $hmm_pfama=$path{'input_dir'}.$code_dataset."/".$code_dataset."_Prodigal_Pfam.tbl";
 open my $tsv, '<', $hmm_pfama;
 while(<$tsv>){
 	chomp($_);
@@ -134,9 +130,9 @@ while(<$tsv>){
 	else{
 		my @splign=split(m/\s+/,$_);
 		my $seq=$splign[0];
-		my $match=$splign[2];
-		my $evalue=$splign[4];
-		my $score=$splign[5];
+		my $match=$splign[3];
+		my $evalue=$splign[6];
+		my $score=$splign[7];
 		if ($score>=$score_th && $evalue<=$evalue_th && (!defined($affi_pfam{$seq}) || ($score>$affi_pfam{$seq}{"score"}))){
 			$affi_pfam{$seq}{"score"}=$score;
 			$affi_pfam{$seq}{"evalue"}=$evalue;
@@ -145,28 +141,6 @@ while(<$tsv>){
 	}
 }
 close $tsv;
-
-open my $tsv, '<', $hmm_pfamb;
-while(<$tsv>){
-	chomp($_);
-	if ($_=~m/^#/){
-		next;
-	}
-	else{
-		my @splign=split(m/\s+/,$_);
-		my $seq=$splign[0];
-		my $match=$splign[2];
-		my $evalue=$splign[4];
-		my $score=$splign[5];
-		if ($score>=$score_th && $evalue<=$evalue_th && (!defined($affi_pfam{$seq}) || ($score>$affi_pfam{$seq}{"score"}))){
-			$affi_pfam{$seq}{"score"}=$score;
-			$affi_pfam{$seq}{"evalue"}=$evalue;
-			$affi_pfam{$seq}{"match"}=$match;
-		}
-	}
-}
-close $tsv;
-
 
 # We also read the annotation for each phage cluster, i.e. its category
 my %phage_cluster;
@@ -179,10 +153,11 @@ while (<$psv>){
 close $psv;
 
 
-# Final output
+# Final output format:
 # >Contig,nb_genes,circularity
 # gene_id,start,stop,length,strand,affi_phage,score,evalue,category,affi_pfam,score,evalue,
-open my $s1, '>', $out_file;
+my $out_file_affi  = catfile($wdir, $code_dataset . '_affi-contigs.csv');
+open my $s1, '>', $out_file_affi;
 my $n=0;
 foreach(@liste_contigs){
 	$n++;

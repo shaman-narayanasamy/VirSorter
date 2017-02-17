@@ -1,26 +1,30 @@
 #!/usr/bin/env perl
-
 use strict;
 use autodie;
-
-# Script to make a summary of the predictions to add to previous predictions
-# Argument 0 : summary file of the phage fragments
-# Argument 1 : global summary to be completed
-# Argument 2 : Out file for new prot list
+require '../config.txt';
+use Getopt::Long;
+my $h='';
+my $code_dataset='';
+my $wdir='';
+my $new_prot_list='';
+GetOptions ('help' => \$h, 'h' => \$h,'i=s'=>\$code_dataset, 'd=s'=>\$wdir, 'n=s'=>\$new_prot_list);
+if ($h==1 || $code_dataset eq "" || $wdir eq "" || $ref_phage_clusters eq ""){ # If asked for help or did not set up any argument
+	print "# Script to measure metrics on the sliding window
+# -i : code dataset
+# -d : working directory
+# -n : Out file for new prot list
+";
+	die "\n";
+}
 if (($ARGV[0] eq "-h") || ($ARGV[0] eq "--h") || ($ARGV[0] eq "-help" )|| ($ARGV[0] eq "--help") || (!defined($ARGV[3])))
 {
-	print "# Script to make a summary of the predictions to add to previous predictions
-# Argument 0 : affiliation file of the contigs
-# Argument 1 : summary file of the phage fragments
-# Argument 2 : global summary to be completed
-# Argument 3 : Out file for new prot list\n";
+	print "\n";
 	die "\n";
 }
 
-my $affi_contigs   = $ARGV[0];
-my $new_summary    = $ARGV[1];
-my $global_summary = $ARGV[2];
-my $new_prot_list  = $ARGV[3];
+my $affi_contigs = $wdir. $code_dataset . '_affi-contigs.csv');
+my $new_summary = $wdir. $code_dataset . '_phage-signal.csv');
+my $global_summary = $wdir. $code_dataset . '_global-phage-signal.csv');
 
 my %infos;
 my $tag=0;

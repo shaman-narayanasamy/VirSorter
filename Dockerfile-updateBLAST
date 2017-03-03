@@ -1,0 +1,6 @@
+FROM discoenv/virsorter:v1.0.3
+
+RUN cd /usr/local/bin \
+    && wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.6.0+-x64-linux.tar.gz \
+    && tar xzvf ncbi-blast-2.6.0+-x64-linux.tar.gz \
+    && mv ncbi-blast-2.6.0+/bin/* .

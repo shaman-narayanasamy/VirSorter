@@ -13,6 +13,7 @@ display_usage() {
 	fi
 
 DATADIR="/home/snarayanasamy/Work/tools/Virsorter/virsorter-data"
+VIRSORTER_REPO="/home/snarayanasamy/Work/tools/Virsorter/VirSorter"
 FILE=$1
 OUTPUTDIR=$2
 THREADS=$3
@@ -32,15 +33,10 @@ else
     mkdir $OUTPUTDIR
 fi
 
-#$ docker run -v /home/snarayanasamy/Work/tools/Virsorter/virsorter-data:/data
-#-v /home/snarayanasamy/Work/virsorter_test/input:/input -v
-#/home/snarayanasamy/Work/virsorter_test/output:/root -v
-#/home/snarayanasamy/Work/virsorter_test/intermediate:/wdir --rm
-#discoenv/virsorter:v1.0.3 --db 2 --fna /input/Bio17-1.fa --wdir /wdir/
+CMD="docker run -v ${DATADIR}:/data -v ${VIRSORTER_REPO}/Scripts/:/usr/local/bin/Scripts \
+    -v ${VIRSORTER_REPO}/wrapper_phage_contigs_sorter_iPlant.pl:/usr/local/bin/wrapper_phage_contigs_sorter_iPlant.pl \
+    -v ${INPUTDIR}:/input -v ${OUTPUTDIR}:/wdir --rm discoenv/virsorter:updateBLAST \
+    --db 2 --fna /input/$INPUTFILE --wdir /wdir/ --ncpu ${THREADS}"
 
-CMD="docker run -v ${DATADIR}:/data -v ${INPUTDIR}:/indir -v ${OUTPUTDIR}:/wdir \
-    --rm discoenv/virsorter:v1.0.3 -w /wdir \
-    --db 2 --fna /indir/${INPUTFILE} \
-    --cpu ${THREADS}"
 echo $CMD
 #exec $CMD

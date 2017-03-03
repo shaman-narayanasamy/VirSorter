@@ -30,7 +30,7 @@ if [ -d "$OUTPUTDIR" ]; then
 else
     echo "The output directory; $OUTPUTDIR does not exist"
     echo "Creating the output directory"
-    mkdir $OUTPUTDIR
+    mkdir -p $OUTPUTDIR
 fi
 
 CMD="docker run -v ${DATADIR}:/data -v ${VIRSORTER_REPO}/Scripts/:/usr/local/bin/Scripts \

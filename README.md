@@ -84,3 +84,16 @@ A sample "run" command to use the current working directory for input/output:
 Simon Roux <roux.8@osu.edu> is the author of Virsorter
 
 Ken Youens-Clark <kyclark@email.arizona.edu> packaged this for Docker/iPlant.
+
+# NOTE
+This fix is based upon using the VirSorter docker image v1.0.3 (https://hub.docker.com/r/discoenv/virsorter/).
+
+This can be installed by doing the following:
+`docker pull discoenv/virsorter:v1.0.3`
+REF: https://github.com/simroux/VirSorter/issues/1
+
+The docker container was outdated such that the new scripts were not included and important programs such as `blastp` were not installed. Therefore, an additional Dockerfile was created (`Dockerfile-updateBLAST`) to install all the "new" dependencies. 
+
+The aforementioned Dockerfile is used to build an additional layer over the already existing image of `discoenv/virsorter:v1.0.3`. This can be done easily by launching the shell script `updateDocker.sh`.
+
+After that, one needs to mount the code of the git repository onto docker such that it is updated. The docker command is wrapped in the shell script `VirSorter_launcher.sh`. **WARNING**: This shell script is made specifically for my environment as a quick fix and to avoid typing out long docker commands. If you were to use it, please edit it according to your specific settings.

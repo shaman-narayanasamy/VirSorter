@@ -89,7 +89,9 @@ Ken Youens-Clark <kyclark@email.arizona.edu> packaged this for Docker/iPlant.
 This fix is based upon using the VirSorter docker image v1.0.3 (https://hub.docker.com/r/discoenv/virsorter/).
 
 This can be installed by doing the following:
+
 `docker pull discoenv/virsorter:v1.0.3`
+
 REF: https://github.com/simroux/VirSorter/issues/1
 
 The docker container was outdated such that the new scripts were not included and important programs such as `blastp` were not installed. Therefore, an additional Dockerfile was created (`Dockerfile-updateBLAST`) to install all the "new" dependencies. 
